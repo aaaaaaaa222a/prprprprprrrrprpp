@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>자기소개 카드 생성기</title>
+<title>( •̀ ω •́ )✧</title>
 <link id="faviconLink" rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%96%A5%EF%B8%8F%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Press+Start+2P&family=VT323&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
@@ -2015,6 +2015,20 @@
   let uid = 100;
 
   function escapeHtml(str){ const d=document.createElement('div'); d.textContent=str||''; return d.innerHTML; }
+  // 뮤직 아이콘 배경색(사용자가 고른 색)을 그대로 테두리에도 쓰면 배경=테두리라
+  // 경계가 안 보이고, 테마마다 밝기가 다른 배경 위에서 밋밋하게/어색하게 떠버린다.
+  // 그래서 테두리는 항상 배경보다 눈에 띄게 밝거나 어둡게 자동 보정해서,
+  // 어떤 색을 고르든 어떤 테마 위에 있든 버튼 윤곽이 또렷하게 보이도록 한다.
+  function contrastBorderColor(hex){
+    const h = (hex||'#1c1c1c').replace('#','');
+    const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+    const lum = (0.299*r + 0.587*g + 0.114*b) / 255; // perceived brightness, 0(어둠)~1(밝음)
+    const dir = lum < 0.5 ? 1 : -1; // 어두운 색 -> 테두리를 더 밝게 / 밝은 색 -> 테두리를 더 어둡게
+    const amt = 46;
+    const adj = v => Math.max(0, Math.min(255, v + dir*amt));
+    const toHex = v => Math.round(v).toString(16).padStart(2,'0');
+    return `#${toHex(adj(r))}${toHex(adj(g))}${toHex(adj(b))}`;
+  }
 
   // strip EXIF/metadata from uploaded images by redrawing onto a canvas
   function stripImageMetadata(file, callback){
@@ -3713,17 +3727,31 @@
   const musicIconInput = document.getElementById('musicIconInput');
   musicIconInput.addEventListener('input', ()=>{ musicToggle.textContent = musicIconInput.value || '🎵'; });
   const musicColorInput = document.getElementById('musicColorInput');
+  // <input type="color">는 사용자가 한 번도 안 만져도 value가 기본값(#1c1c1c)을
+  // 갖고 있어서, "손댄 적 있는지"를 이 플래그로 따로 추적하지 않으면 내보내기/
+  // 모바일 미리보기 쪽에서 아직 아무 색도 고르지 않은 사람한테까지 저 기본값을
+  // 강제로 씌워서, 원래 테마마다 예쁘게 잡혀있던 고유 색이 사라져버린다.
+  let musicColorCustomized = false;
+  // customized 상태일 때만 --music-color/--music-toggle-border 선언을 돌려주고,
+  // 아니면 빈 문자열을 돌려줘서 그 자리에 아무 것도 안 쓰이게(=테마 기본값 그대로
+  // 살아있게) 한다. 내보내기용 템플릿 4곳에서 전부 이 함수 하나로 통일해서 쓴다.
+  function musicColorCssVars(){
+    if(!musicColorCustomized) return '';
+    return `--music-color:${musicColorInput.value}; --music-toggle-border:${contrastBorderColor(musicColorInput.value)};`;
+  }
   musicColorInput.addEventListener('input', ()=>{
+    musicColorCustomized = true;
     const c = musicColorInput.value;
+    const borderC = contrastBorderColor(c);
     document.documentElement.style.setProperty('--music-color', c);
-    document.documentElement.style.setProperty('--music-toggle-border', c);
+    document.documentElement.style.setProperty('--music-toggle-border', borderC);
     // 일부 테마(mint, dark, forest, cream, mono, neon, github, glossy, paper 등)는
     // .stage[data-theme="..."] 규칙에서 --music-toggle-border를 자기 자신에게
     // 직접 재정의하고 있어서, :root/documentElement에만 값을 줘서는 절대 못 이김
     // (상속값은 "직접 선언"을 절대 못 이기는 CSS 규칙 때문). 그래서 .stage
     // 엘리먼트 자체에도 인라인으로 같이 걸어줘야 모든 테마에서 확실히 반영됨.
     stage.style.setProperty('--music-color', c);
-    stage.style.setProperty('--music-toggle-border', c);
+    stage.style.setProperty('--music-toggle-border', borderC);
   });
 
   let playlist = [];
@@ -4763,11 +4791,11 @@ ${styleTag}
   body{ margin:0; min-height:100vh; background:#0c0c0c; overflow-x:hidden; }
   main.stage{ min-height:100vh; min-height:100dvh; }
   footer.credit{ position:fixed; }
-  :root{ --object-color:${objectColorInput.value}; --music-color:${musicColorInput.value}; --music-toggle-border:${musicColorInput.value}; --kr-font:${fontSelect.value}; }
+  :root{ --object-color:${objectColorInput.value}; ${musicColorCssVars()} --kr-font:${fontSelect.value}; }
 </style>
 </head>
 <body>
-<main class="stage" id="stage" data-theme="${currentTheme}" style="background:${stageBackground}; --music-color:${musicColorInput.value}; --music-toggle-border:${musicColorInput.value};">
+<main class="stage" id="stage" data-theme="${currentTheme}" style="background:${stageBackground}; ${musicColorCssVars()}">
 ${bgFxClone.outerHTML}
 ${stageStickerClone.outerHTML}
 ${stageObjClone ? stageObjClone.outerHTML : ''}
@@ -5196,14 +5224,18 @@ ${styleTag}
   /* the desktop editor sets these as inline custom properties on
      <html> (document.documentElement.style.setProperty(...)), which live
      outside the cloned <style> tag above -- without re-declaring them here,
-     any color/font customization (e.g. the music icon color) silently fell
-     back to the theme default the moment it was viewed in this iframe. */
-  :root{ --object-color:${objectColorInput.value}; --music-color:${musicColorInput.value}; --music-toggle-border:${musicColorInput.value}; --kr-font:${fontSelect.value}; }
+     any color/font customization the user actually made (e.g. a picked
+     music icon color) would silently fall back to the theme default the
+     moment it was viewed in this iframe. musicColorCssVars() only emits
+     anything if the user actually touched the color picker -- otherwise
+     leave these unset so each theme's own default color/border shows
+     through here exactly like it does in the live editor. */
+  :root{ --object-color:${objectColorInput.value}; ${musicColorCssVars()} --kr-font:${fontSelect.value}; }
 </style>
 <style>.sticker-item, .theme-object-btn, #musicToggle, #playbarHeader, #floatToggle{ cursor:grab; }
 .sticker-item.dragging, .theme-object-btn.dragging, #musicToggle.dragging, .playbar.dragging, #floatToggle.dragging{ cursor:grabbing; outline:2px dashed #6bd67a; outline-offset:2px; }</style>
 </head><body>
-<main class="stage" id="stage" data-theme="${currentTheme}" style="background:${stageBackground}; min-height:100vh; display:flex; align-items:center; justify-content:center; --music-color:${musicColorInput.value}; --music-toggle-border:${musicColorInput.value};">
+<main class="stage" id="stage" data-theme="${currentTheme}" style="background:${stageBackground}; min-height:100vh; display:flex; align-items:center; justify-content:center; ${musicColorCssVars()}">
 ${bgFxClone.outerHTML}
 ${musicToggleClone.outerHTML}
 ${playbarCloneEl.outerHTML}
