@@ -1263,20 +1263,79 @@
   .rte-btn:hover{ border-color:#666; }
   .rte-sep{ width:1px; height:16px; background:#333; margin:0 2px; }
   .rte-label{ font-size:9.5px; color:#777; margin-right:1px; }
-  .rte-swatch{ width:16px; height:16px; border-radius:50%; border:1px solid rgba(255,255,255,.35); cursor:pointer; padding:0; }
+  .rte-swatch{ width:16px; height:16px; border-radius:50%; border:1px solid rgba(255,255,255,.35); cursor:pointer; padding:0; flex:none; }
   .rte-swatch-none{ position:relative; }
   .rte-swatch-none::before, .rte-swatch-none::after{ content:''; position:absolute; left:1px; right:1px; top:50%; height:1px; background:#e05a5a; transform:rotate(45deg); }
-  /* custom color picker swatch -- a small circular swash of the currently
-     chosen color, with a native <input type=color> hidden underneath it so
-     tapping opens the OS/browser color picker instead of a plain square input. */
-  .rte-color-input{
-    -webkit-appearance:none; appearance:none; width:18px; height:18px; padding:0; border:0;
-    border-radius:50%; cursor:pointer; background:none; vertical-align:middle;
-    box-shadow:0 0 0 1px rgba(255,255,255,.35), inset 0 0 0 2px #1c1c1c;
+  /* unlink button: cramming "🔗✕" (two glyphs) into the same 24px square as
+     the other single-glyph buttons made it visibly overflow the box. Keep it
+     a single 🔗 glyph and draw the "remove" strike as a CSS overlay instead,
+     same trick as the "no highlight" preset swatch above. */
+  .rte-btn-unlink{ position:relative; }
+  .rte-btn-unlink::after{ content:''; position:absolute; left:3px; right:3px; top:50%; height:1.5px; background:#e05a5a; transform:rotate(-45deg); pointer-events:none; }
+  /* toolbar trigger -- just shows the last-applied color as a small dot;
+     clicking it opens the full color-popover panel (below) with presets,
+     a custom hex/picker box, and a proper "최근 사용 색상" history section,
+     instead of cramming everything into the toolbar row itself. */
+  .rte-color-trigger{
+    width:22px; height:22px; border-radius:6px; border:1px solid #2f2f2f; background:#232323;
+    cursor:pointer; padding:0; flex:none; display:flex; align-items:center; justify-content:center;
   }
-  .rte-color-input::-webkit-color-swatch-wrapper{ padding:0; border-radius:50%; }
-  .rte-color-input::-webkit-color-swatch{ border:none; border-radius:50%; }
-  .rte-color-input::-moz-color-swatch{ border:none; border-radius:50%; }
+  .rte-color-trigger:hover{ border-color:#666; }
+  .rte-color-trigger-dot{ width:13px; height:13px; border-radius:50%; box-shadow:0 0 0 1px rgba(255,255,255,.35); }
+  /* quick "지우기" button sits right in the toolbar (not tucked inside the
+     popover) so clearing a color/highlight doesn't require opening the
+     popup at all. */
+  .rte-color-clear{
+    width:20px; height:22px; border-radius:6px; border:1px solid #2f2f2f; background:#232323; color:#e07a7a;
+    font-size:10.5px; cursor:pointer; padding:0; flex:none; line-height:1;
+  }
+  .rte-color-clear:hover{ border-color:#e07a7a; }
+
+  /* wider color-picker trigger used outside the rte-toolbar (side panel
+     fields like object/music button color) -- shows the current color as a
+     dot plus a text label, opens the same shared color-popover. */
+  .color-field-trigger{
+    display:inline-flex; align-items:center; gap:8px; width:100%; box-sizing:border-box;
+    background:#1f1f1f; border:1px solid var(--panel-line); border-radius:9px; padding:8px 12px;
+    cursor:pointer; font-family:var(--ui-font); color:var(--panel-fg); font-size:12.5px;
+  }
+  .color-field-trigger:hover{ border-color:#666; }
+  .color-field-trigger-dot{ width:20px; height:20px; border-radius:50%; flex:none; box-shadow:0 0 0 1px rgba(255,255,255,.35); }
+
+  /* the color popover panel itself -- a single shared instance appended to
+     <body> and repositioned/repopulated per open, styled to match the rest
+     of the dark editor UI rather than the browser's native picker chrome. */
+  .color-popover{
+    position:fixed; z-index:200; width:242px; background:#1c1c1c; border:1px solid var(--panel-line);
+    border-radius:14px; box-shadow:0 14px 34px rgba(0,0,0,.55); padding:14px 14px 12px; display:none;
+    font-family:var(--ui-font);
+  }
+  .color-popover.open{ display:block; }
+  .color-popover-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .color-popover-title{ font-size:12.5px; font-weight:600; color:var(--panel-fg); }
+  .color-popover-close{ width:20px; height:20px; border-radius:50%; border:none; background:#2a2a2a; color:#aaa; font-size:11px; cursor:pointer; line-height:1; }
+  .color-popover-close:hover{ background:#333; color:#eee; }
+  .color-popover-section-label{ font-size:10px; color:var(--panel-muted); letter-spacing:.03em; margin:2px 0 7px; }
+  .color-popover-grid{ display:grid; grid-template-columns:repeat(6, 1fr); gap:7px; margin-bottom:12px; justify-items:center; }
+  .color-popover-swatch{ width:26px; height:26px; flex:none; border-radius:50%; border:1px solid rgba(255,255,255,.25); cursor:pointer; padding:0; position:relative; }
+  .color-popover-swatch:hover{ transform:scale(1.1); }
+  .color-popover-swatch.selected{ box-shadow:0 0 0 2px #1c1c1c, 0 0 0 4px #7bdc95; }
+  .color-popover-swatch-none::before, .color-popover-swatch-none::after{ content:''; position:absolute; left:2px; right:2px; top:50%; height:1px; background:#e05a5a; transform:rotate(45deg); }
+  .color-popover-custom{ display:flex; align-items:center; gap:7px; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #2a2a2a; }
+  .color-popover-swatch-lg{ position:relative; width:32px; height:32px; border-radius:9px; overflow:hidden; flex:none; cursor:pointer; box-shadow:0 0 0 1px rgba(255,255,255,.3); }
+  .color-popover-swatch-lg input[type="color"]{ position:absolute; top:-10px; left:-10px; width:52px; height:52px; padding:0; border:none; cursor:pointer; background:none; }
+  .color-popover-hex{
+    flex:1; min-width:0; background:#141414; border:1px solid #333; border-radius:8px; color:var(--panel-fg);
+    font-family:'Space Grotesk', monospace; font-size:12.5px; padding:7px 9px; text-transform:lowercase;
+  }
+  .color-popover-hex:focus{ outline:none; border-color:#666; }
+  .color-popover-apply{
+    flex:none; border-radius:8px; border:1px solid #2f2f2f; background:#28352c; color:#7bdc95;
+    font-size:11.5px; padding:7px 10px; cursor:pointer; font-family:var(--ui-font);
+  }
+  .color-popover-apply:hover{ border-color:#7bdc95; }
+  .color-popover-recent-row{ display:flex; flex-wrap:wrap; gap:7px; }
+  .color-popover-recent-empty{ font-size:11px; color:#666; }
   .rte-body{ background:#1f1f1f; border:1px solid var(--panel-line); border-radius:8px; padding:9px 11px;
     font-family:var(--ui-font); font-size:12.5px; color:var(--panel-fg); outline:none; white-space:pre-wrap; word-break:break-word; }
   .rte-body:focus{ border-color:#666; }
@@ -1568,8 +1627,9 @@
       </div>
       <div class="field"><div class="hint">드래그로 이동, 클릭하면 이펙트·팝업·링크가 열려요</div></div>
       <div class="field">
-        <label for="objectColorInput">오브젝트 버튼 색상</label>
-        <input type="color" id="objectColorInput" value="#ffffff">
+        <label for="objectColorTrigger">오브젝트 버튼 색상</label>
+        <button type="button" class="color-field-trigger" id="objectColorTrigger"><span class="color-field-trigger-dot" id="objectColorDot" style="background:#ffffff;"></span>색상 선택</button>
+        <input type="color" id="objectColorInput" value="#ffffff" style="display:none;">
       </div>
       <div id="defaultObjPreview"></div>
       <div class="section-label" style="margin-top:14px;">내가 추가한 오브젝트</div>
@@ -1643,8 +1703,8 @@
           <span style="font-size:11px; color:#8a8a8a; align-self:center;">버튼 아이콘 · 버튼을 드래그하면 위치를 옮길 수 있어요</span>
         </div>
         <div class="yt-row" style="margin-top:6px;">
-          <input type="color" id="musicColorInput" value="#1c1c1c" style="width:44px; flex:none; height:32px; padding:0; border-radius:8px;">
-          <span style="font-size:11px; color:#8a8a8a; align-self:center;">버튼 색상</span>
+          <button type="button" class="color-field-trigger" id="musicColorTrigger" style="width:auto; flex:1;"><span class="color-field-trigger-dot" id="musicColorDot" style="background:#1c1c1c;"></span>버튼 색상</button>
+          <input type="color" id="musicColorInput" value="#1c1c1c" style="display:none;">
         </div>
       </div>
     </div>
@@ -2043,6 +2103,176 @@
   let mobileOverrides = { musicToggleStyle:'', playbarStyle:'', floatToggleStyle:'', stickers:{}, objects:{} };
   let currentTheme = 'imac';
   let currentIndex = 0;
+
+  // ---------- rich-text color picker: recently-used colors ----------
+  // Persisted across sessions (separately from page content) so the "직접
+  // 선택" picker remembers colors you've actually confirmed, not just the
+  // fixed presets. Kept as its own localStorage key rather than folded into
+  // the page-content draft, since it's a personal picker preference, not
+  // card content.
+  const COLOR_HISTORY_KEY = 'introCardColorHistory_v1';
+  let colorHistory = { fore: [], hilite: [], object: [], music: [] };
+  (function loadColorHistory(){
+    try{
+      const raw = localStorage.getItem(COLOR_HISTORY_KEY);
+      if(!raw) return;
+      const d = JSON.parse(raw);
+      ['fore','hilite','object','music'].forEach(k=>{
+        if(d && Array.isArray(d[k])) colorHistory[k] = d[k].slice(0,8);
+      });
+    }catch(e){ /* corrupt/unavailable storage -- just start empty */ }
+  })();
+  function pushColorHistory(kind, color){
+    const arr = colorHistory[kind] || (colorHistory[kind] = []);
+    const i = arr.indexOf(color);
+    if(i !== -1) arr.splice(i, 1);
+    arr.unshift(color);
+    if(arr.length > 8) arr.length = 8;
+    try{ localStorage.setItem(COLOR_HISTORY_KEY, JSON.stringify(colorHistory)); }catch(e){}
+  }
+
+  // ---------- shared color picker popover ----------
+  // Used by every color/highlight picker in the app (rich-text toolbar,
+  // object button color, music button color) -- built once here and
+  // repositioned/repopulated wherever it's opened from, styled to match the
+  // rest of the dark editor UI.
+  const HILITE_PRESETS = ['#fff59d','#ffb3c1','#b5f2c0','#a8d8ff','#ffe0b3'];
+  const FORE_PRESETS = ['#ffffff','#2c2c2c','#ff6b6b','#ffd166','#6bd67a','#6bb7ff','#c58cff','#f5a9d0'];
+  const OBJECT_PRESETS = ['#ffffff','#1c1c1c','#ff6b6b','#ffd166','#6bd67a','#6bb7ff','#c58cff'];
+  const MUSIC_PRESETS = ['#1c1c1c','#ffffff','#ff6b6b','#ffd166','#6bd67a','#6bb7ff','#c58cff'];
+
+  // colorPopoverState: { triggerBtn, title, presets, allowNone, historyKind, currentColor, onApply(colorOrNull) }
+  let colorPopoverState = null;
+  const colorPopoverEl = document.createElement('div');
+  colorPopoverEl.className = 'color-popover';
+  document.addEventListener('DOMContentLoaded', ()=>document.body.appendChild(colorPopoverEl));
+  if(document.body) document.body.appendChild(colorPopoverEl);
+
+  function closeColorPopover(){
+    colorPopoverEl.classList.remove('open');
+    colorPopoverState = null;
+  }
+
+  function applyColorAndClose(rawColor){
+    const st = colorPopoverState; if(!st) return;
+    const value = rawColor === 'none' ? null : rawColor;
+    if(value && st.historyKind) pushColorHistory(st.historyKind, value);
+    const onApply = st.onApply;
+    closeColorPopover();
+    if(onApply) onApply(value);
+  }
+
+  function renderColorPopover(){
+    const st = colorPopoverState; if(!st) return;
+    const recent = (st.historyKind && colorHistory[st.historyKind]) || [];
+    const currentColor = /^#[0-9a-fA-F]{6}$/.test(st.currentColor||'') ? st.currentColor : (recent[0] || '#ffffff');
+    colorPopoverEl.innerHTML = `
+      <div class="color-popover-head">
+        <span class="color-popover-title">${st.title}</span>
+        <button type="button" class="color-popover-close" title="닫기">✕</button>
+      </div>
+      <div class="color-popover-section-label">프리셋 색상</div>
+      <div class="color-popover-grid">
+        ${st.presets.map(c=>`<button type="button" class="color-popover-swatch" data-color="${c}" style="background:${c};" title="${c}"></button>`).join('')}
+        ${st.allowNone ? `<button type="button" class="color-popover-swatch color-popover-swatch-none" data-color="none" style="background:#232323;" title="지우기"></button>` : ''}
+      </div>
+      <div class="color-popover-custom">
+        <span class="color-popover-swatch-lg" style="background:${currentColor};"><input type="color" value="${currentColor}"></span>
+        <input type="text" class="color-popover-hex" value="${currentColor}" maxlength="7" spellcheck="false" autocomplete="off">
+        <button type="button" class="color-popover-apply">적용</button>
+      </div>
+      <div class="color-popover-section-label">최근 사용 색상</div>
+      <div class="color-popover-recent-row">
+        ${recent.length ? recent.map(c=>`<button type="button" class="color-popover-swatch" data-color="${c}" style="background:${c};" title="${c}"></button>`).join('') : `<span class="color-popover-recent-empty">아직 사용한 색상이 없어요</span>`}
+      </div>`;
+  }
+
+  function openColorPopover(triggerBtn, config){
+    colorPopoverState = Object.assign({ triggerBtn }, config);
+    renderColorPopover();
+    colorPopoverEl.classList.add('open');
+    const r = triggerBtn.getBoundingClientRect();
+    const pw = 242, margin = 8;
+    let left = r.left;
+    if(left + pw + margin > window.innerWidth) left = window.innerWidth - pw - margin;
+    if(left < margin) left = margin;
+    const popH = colorPopoverEl.offsetHeight || 360;
+    let top = r.bottom + 8;
+    if(top + popH + margin > window.innerHeight) top = Math.max(margin, r.top - 8 - popH);
+    colorPopoverEl.style.left = left + 'px';
+    colorPopoverEl.style.top = top + 'px';
+  }
+
+  function toggleColorPopover(triggerBtn, config){
+    if(colorPopoverState && colorPopoverState.triggerBtn === triggerBtn){ closeColorPopover(); return; }
+    openColorPopover(triggerBtn, config);
+  }
+
+  // convenience wrapper for the rich-text toolbar's foreColor/hiliteColor
+  // triggers -- captures the current selection immediately (before the
+  // popover can steal focus) and applies it back through execCommand.
+  function openRteColorPopover(triggerBtn, cmd, body, refresh){
+    const sel = window.getSelection();
+    const range = sel && sel.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
+    const kind = cmd === 'hiliteColor' ? 'hilite' : 'fore';
+    toggleColorPopover(triggerBtn, {
+      title: cmd==='hiliteColor' ? '하이라이트 색상' : '글자 색상',
+      presets: cmd==='hiliteColor' ? HILITE_PRESETS : FORE_PRESETS,
+      allowNone: true,
+      historyKind: kind,
+      currentColor: (colorHistory[kind]||[])[0] || (kind==='hilite' ? '#fff59d' : '#ffffff'),
+      onApply: (value)=>{
+        body.focus();
+        if(range){ const s = window.getSelection(); s.removeAllRanges(); s.addRange(range); }
+        document.execCommand(cmd, false, value === null ? (cmd==='hiliteColor' ? 'transparent' : 'inherit') : value);
+        body.dispatchEvent(new Event('input', {bubbles:true}));
+        if(refresh) refresh();
+      }
+    });
+  }
+
+  colorPopoverEl.addEventListener('click', (e)=>{
+    if(e.target.closest('.color-popover-close')){ closeColorPopover(); return; }
+    const swatch = e.target.closest('.color-popover-swatch');
+    if(swatch){ applyColorAndClose(swatch.dataset.color); return; }
+    if(e.target.closest('.color-popover-apply')){
+      const hexInput = colorPopoverEl.querySelector('.color-popover-hex');
+      let v = (hexInput.value || '').trim();
+      if(v && v[0] !== '#') v = '#' + v;
+      if(!/^#[0-9a-fA-F]{6}$/.test(v)){ hexInput.style.borderColor = '#e05a5a'; hexInput.focus(); return; }
+      applyColorAndClose(v);
+    }
+  });
+  colorPopoverEl.addEventListener('input', (e)=>{
+    if(e.target.matches('input[type="color"]')){
+      const v = e.target.value;
+      const hexInput = colorPopoverEl.querySelector('.color-popover-hex');
+      const lg = colorPopoverEl.querySelector('.color-popover-swatch-lg');
+      if(hexInput) hexInput.value = v;
+      if(lg) lg.style.background = v;
+    } else if(e.target.matches('.color-popover-hex')){
+      e.target.style.borderColor = '';
+      const v = e.target.value.trim();
+      if(/^#[0-9a-fA-F]{6}$/.test(v)){
+        const lg = colorPopoverEl.querySelector('.color-popover-swatch-lg');
+        if(lg) lg.style.background = v;
+      }
+    }
+  });
+  colorPopoverEl.addEventListener('keydown', (e)=>{
+    if(e.target.matches('.color-popover-hex') && e.key === 'Enter'){
+      e.preventDefault();
+      colorPopoverEl.querySelector('.color-popover-apply').click();
+    }
+  });
+  // click outside the popover (and outside the trigger that opened it) closes it
+  document.addEventListener('mousedown', (e)=>{
+    if(!colorPopoverEl.classList.contains('open')) return;
+    if(colorPopoverEl.contains(e.target)) return;
+    if(e.target.closest('.rte-color-trigger')) return;
+    closeColorPopover();
+  });
+  window.addEventListener('resize', closeColorPopover);
 
   const profile = { emoji:'😊', name:'김클로드', tagline:'레트로를 사랑하는 개발자' };
 
@@ -2551,6 +2781,27 @@
   const defaultObjPreviewEl = document.getElementById('defaultObjPreview');
   const objectColorInput = document.getElementById('objectColorInput');
   objectColorInput.addEventListener('input', ()=>{ document.documentElement.style.setProperty('--object-color', objectColorInput.value); });
+  // visible trigger button that opens the shared color-popover -- applies
+  // back through the (now hidden) native input so the existing 'input'
+  // listener above still does all the real work, and every export/preview
+  // code path that reads objectColorInput.value keeps working unchanged.
+  const objectColorTrigger = document.getElementById('objectColorTrigger');
+  const objectColorDot = document.getElementById('objectColorDot');
+  objectColorTrigger.addEventListener('click', ()=>{
+    toggleColorPopover(objectColorTrigger, {
+      title: '오브젝트 버튼 색상',
+      presets: OBJECT_PRESETS,
+      allowNone: false,
+      historyKind: 'object',
+      currentColor: objectColorInput.value,
+      onApply: (value)=>{
+        if(!value) return;
+        objectColorInput.value = value;
+        objectColorDot.style.background = value;
+        objectColorInput.dispatchEvent(new Event('input', {bubbles:true}));
+      }
+    });
+  });
 
   // The theme's own built-in object (only, toggled via themeObjectToggle) plus
   // every custom object the user has added (always included, any theme).
@@ -2897,19 +3148,6 @@
   });
 
   objectEditorEl.addEventListener('input', (e)=>{
-    // custom text-color picker: reapply the saved selection (the native
-    // picker steals focus from the contenteditable while it's open) then run
-    // foreColor with the chosen color, same as clicking one of the preset dots.
-    if(e.target.classList && e.target.classList.contains('rte-color-input')){
-      const blockCard = e.target.closest('.block-card'); if(!blockCard) return;
-      const body = blockCard.querySelector('.rte-body'); if(!body) return;
-      body.focus();
-      const range = e.target._savedRange;
-      if(range){ const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
-      document.execCommand(e.target.dataset.cmd || 'foreColor', false, e.target.value);
-      body.dispatchEvent(new Event('input', {bubbles:true}));
-      return;
-    }
     const field = e.target.dataset.ofield;
     const list = customObjects; // only custom (user-added) objects are editable
     const o = list[activeObjectIdx]; if(!o) return;
@@ -2956,16 +3194,6 @@
   // mirrors the same handling wired up for editorsEl below, which the object
   // popup editor never had, so its B/I/S/U and color buttons did nothing.
   objectEditorEl.addEventListener('mousedown', (e)=>{
-    // the native color picker needs its own mousedown to actually open --
-    // just save the current text selection first so we can restore it once
-    // the picker fires its 'input' event (see the color-input handler below),
-    // then let default behavior proceed instead of preventDefault-ing it away.
-    const picker = e.target.closest('.rte-color-input');
-    if(picker){
-      const sel = window.getSelection();
-      if(sel && sel.rangeCount) picker._savedRange = sel.getRangeAt(0).cloneRange();
-      return;
-    }
     if(e.target.closest('.rte-toolbar')) e.preventDefault();
   });
   objectEditorEl.addEventListener('paste', (e)=>{
@@ -2977,6 +3205,30 @@
   objectEditorEl.addEventListener('click', (e)=>{
     const list = customObjects; // only custom (user-added) objects are editable
     const o = list[activeObjectIdx];
+    // quick "지우기" button -- clears the color/highlight directly without
+    // opening the popover at all.
+    const clearBtn = e.target.closest('.rte-color-clear');
+    if(clearBtn && clearBtn.closest('.rte-toolbar')){
+      const blockCard = clearBtn.closest('.block-card');
+      const body = blockCard && blockCard.querySelector('.rte-body');
+      if(body){
+        body.focus();
+        const cmd = clearBtn.dataset.cmd;
+        document.execCommand(cmd, false, cmd==='hiliteColor' ? 'transparent' : 'inherit');
+        body.dispatchEvent(new Event('input', {bubbles:true}));
+      }
+      return;
+    }
+    // color trigger dot -- opens the shared color-popover (presets + custom
+    // hex + recent-colors history) instead of cramming everything into the
+    // toolbar row.
+    const colorTrigger = e.target.closest('.rte-color-trigger');
+    if(colorTrigger && colorTrigger.closest('.rte-toolbar')){
+      const blockCard = colorTrigger.closest('.block-card');
+      const body = blockCard && blockCard.querySelector('.rte-body');
+      if(body) openRteColorPopover(colorTrigger, colorTrigger.dataset.cmd, body, renderObjectEditor);
+      return;
+    }
     const rteBtn = e.target.closest('[data-cmd]');
     if(rteBtn && rteBtn.closest('.rte-toolbar')){
       const blockCard = rteBtn.closest('.block-card');
@@ -3121,15 +3373,16 @@
           <button type="button" class="rte-btn" data-cmd="underline" title="밑줄" style="text-decoration:underline;">U</button>
           <span class="rte-sep"></span>
           <button type="button" class="rte-btn" data-cmd="link" title="선택한 글자에 링크 걸기">🔗</button>
-          <button type="button" class="rte-btn" data-cmd="unlink" title="링크 해제">🔗✕</button>
-          <span class="rte-sep"></span>
+          <button type="button" class="rte-btn rte-btn-unlink" data-cmd="unlink" title="링크 해제">🔗</button>
+        </div>
+        <div class="rte-toolbar">
           <span class="rte-label">하이라이트</span>
-          ${['#fff59d','#ffb3c1','#b5f2c0','#a8d8ff','none'].map(c=>`<button type="button" class="rte-swatch${c==='none'?' rte-swatch-none':''}" data-cmd="hiliteColor" data-color="${c}" style="background:${c==='none'?'transparent':c};" title="${c==='none'?'하이라이트 없음':c}"></button>`).join('')}
-          <input type="color" class="rte-color-input" data-cmd="hiliteColor" value="#fff59d" title="직접 색상 선택">
+          <button type="button" class="rte-color-trigger" data-cmd="hiliteColor" title="하이라이트 색상 선택"><span class="rte-color-trigger-dot" style="background:${colorHistory.hilite[0]||'#fff59d'};"></span></button>
+          <button type="button" class="rte-color-clear" data-cmd="hiliteColor" title="하이라이트 지우기">✕</button>
           <span class="rte-sep"></span>
           <span class="rte-label">글자색</span>
-          ${['#ffffff','#ff6b6b','#ffd166','#6bd67a','#6bb7ff','#c58cff'].map(c=>`<button type="button" class="rte-swatch" data-cmd="foreColor" data-color="${c}" style="background:${c};" title="${c}"></button>`).join('')}
-          <input type="color" class="rte-color-input" data-cmd="foreColor" value="#ffffff" title="직접 색상 선택">
+          <button type="button" class="rte-color-trigger" data-cmd="foreColor" title="글자 색상 선택"><span class="rte-color-trigger-dot" style="background:${colorHistory.fore[0]||'#ffffff'};"></span></button>
+          <button type="button" class="rte-color-clear" data-cmd="foreColor" title="글자색 지우기">✕</button>
         </div>
         <div class="rte-body" data-field="bodyHtml" contenteditable="true" data-placeholder="내용 입력">${b.bodyHtml!=null ? b.bodyHtml : escapeHtml(b.body||'')}</div>
         <label class="toggle-switch small" style="margin-top:8px; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--panel-muted); cursor:pointer;"><input type="checkbox" data-field="noCursor" ${b.noCursor?'checked':''}><span class="toggle-slider"></span>깜빡이는 커서(_) 숨기기</label>`;
@@ -3219,17 +3472,6 @@
   }
 
   editorsEl.addEventListener('input', (e)=>{
-    // custom text-color picker: same handling as objectEditorEl's version.
-    if(e.target.classList && e.target.classList.contains('rte-color-input')){
-      const blockCard = e.target.closest('.block-card'); if(!blockCard) return;
-      const body = blockCard.querySelector('.rte-body'); if(!body) return;
-      body.focus();
-      const range = e.target._savedRange;
-      if(range){ const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
-      document.execCommand(e.target.dataset.cmd || 'foreColor', false, e.target.value);
-      body.dispatchEvent(new Event('input', {bubbles:true}));
-      return;
-    }
     if(e.target.dataset.field==='imgfile') return;
     const blockCard = e.target.closest('.block-card'); if(!blockCard) return;
     const pageCard = e.target.closest('.page-card'); if(!pageCard) return;
@@ -3271,17 +3513,33 @@
   // button click (mousedown on a button normally steals focus/collapses the
   // selection before click fires), then run the formatting command on it.
   editorsEl.addEventListener('mousedown', (e)=>{
-    // same reasoning as objectEditorEl's version above: let the native color
-    // picker open normally, just remember the selection to restore first.
-    const picker = e.target.closest('.rte-color-input');
-    if(picker){
-      const sel = window.getSelection();
-      if(sel && sel.rangeCount) picker._savedRange = sel.getRangeAt(0).cloneRange();
-      return;
-    }
     if(e.target.closest('.rte-toolbar')) e.preventDefault();
   });
   editorsEl.addEventListener('click', (e)=>{
+    // quick "지우기" button -- clears the color/highlight directly without
+    // opening the popover at all.
+    const clearBtn = e.target.closest('.rte-color-clear');
+    if(clearBtn && clearBtn.closest('.rte-toolbar')){
+      const blockCard = clearBtn.closest('.block-card');
+      const body = blockCard && blockCard.querySelector('.rte-body');
+      if(body){
+        body.focus();
+        const cmd = clearBtn.dataset.cmd;
+        document.execCommand(cmd, false, cmd==='hiliteColor' ? 'transparent' : 'inherit');
+        body.dispatchEvent(new Event('input', {bubbles:true}));
+      }
+      return;
+    }
+    // color trigger dot -- opens the shared color-popover (presets + custom
+    // hex + recent-colors history) instead of cramming everything into the
+    // toolbar row.
+    const colorTrigger = e.target.closest('.rte-color-trigger');
+    if(colorTrigger && colorTrigger.closest('.rte-toolbar')){
+      const blockCard = colorTrigger.closest('.block-card');
+      const body = blockCard && blockCard.querySelector('.rte-body');
+      if(body) openRteColorPopover(colorTrigger, colorTrigger.dataset.cmd, body, renderPageEditors);
+      return;
+    }
     const rteBtn = e.target.closest('[data-cmd]');
     if(rteBtn && rteBtn.closest('.rte-toolbar')){
       const blockCard = rteBtn.closest('.block-card');
@@ -3883,6 +4141,26 @@
     // 엘리먼트 자체에도 인라인으로 같이 걸어줘야 모든 테마에서 확실히 반영됨.
     stage.style.setProperty('--music-color', c);
     stage.style.setProperty('--music-toggle-border', c);
+  });
+  // visible trigger button that opens the shared color-popover -- see the
+  // objectColorTrigger wiring above for why it just proxies through the
+  // (now hidden) native input instead of duplicating the logic above.
+  const musicColorTrigger = document.getElementById('musicColorTrigger');
+  const musicColorDot = document.getElementById('musicColorDot');
+  musicColorTrigger.addEventListener('click', ()=>{
+    toggleColorPopover(musicColorTrigger, {
+      title: '음악 버튼 색상',
+      presets: MUSIC_PRESETS,
+      allowNone: false,
+      historyKind: 'music',
+      currentColor: musicColorInput.value,
+      onApply: (value)=>{
+        if(!value) return;
+        musicColorInput.value = value;
+        musicColorDot.style.background = value;
+        musicColorInput.dispatchEvent(new Event('input', {bubbles:true}));
+      }
+    });
   });
 
   let playlist = [];
