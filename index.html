@@ -2208,6 +2208,57 @@
     openColorPopover(triggerBtn, config);
   }
 
+  // reliably strip an inline color/background-color from the current
+  // selection. execCommand('foreColor'/'hiliteColor', false, 'inherit'/
+  // 'transparent') looks like it should "clear" the color but often does
+  // nothing at all: 'inherit' just pulls the color from whatever wrapping
+  // colored element is still there (so it stays the same color), and some
+  // browsers reject non-real-color keywords for execCommand outright. So
+  // instead: apply a throwaway sentinel color first (execCommand reliably
+  // handles all the node-splitting so only the selected text is affected),
+  // then find exactly those newly-split nodes and remove the style
+  // property from them directly, so the text falls back to its real default.
+  function clearRteColor(body, cmd){
+    body.focus();
+    const isHilite = cmd === 'hiliteColor';
+    const sentinel = isHilite ? 'rgb(1, 2, 3)' : 'rgb(4, 5, 6)';
+    document.execCommand(cmd, false, sentinel);
+    const sel = window.getSelection();
+    if(sel && sel.rangeCount){
+      body.querySelectorAll('*').forEach(el=>{
+        if(!sel.containsNode(el, true)) return;
+        const prop = isHilite ? 'backgroundColor' : 'color';
+        if((el.style[prop] || '').replace(/\s+/g,'') === sentinel.replace(/\s+/g,'')){
+          el.style.removeProperty(isHilite ? 'background-color' : 'color');
+          if(!el.getAttribute('style')) el.removeAttribute('style');
+        }
+      });
+    }
+    body.dispatchEvent(new Event('input', {bubbles:true}));
+  }
+
+  // preset palettes tuned per theme so they actually fit each device's look,
+  // instead of one generic rainbow set for every theme.
+  const FORE_PRESETS_DEFAULT = ['#ffffff','#2c2c2c','#ff6b6b','#ffd166','#6bd67a','#6bb7ff','#c58cff','#f5a9d0'];
+  const HILITE_PRESETS_DEFAULT = ['#fff59d','#ffb3c1','#b5f2c0','#a8d8ff','#ffe0b3'];
+  const THEME_COLOR_PRESETS = {
+    imac:     { fore:['#ffffff','#2c2c2c','#3399ff','#66cc66','#ff6699','#ff9933','#9966cc'], hilite:['#d9f2ff','#e6ffe0','#ffe0ea','#fff2cc','#ece0ff'] },
+    ipod:     { fore:['#ffffff','#e5e5e5','#9a9a9a','#4d4d4d','#1a1a1a','#3ea6ff'],            hilite:['#f2f2f2','#e0e0e0','#cfe8ff','#dedede','#bfbfbf'] },
+    pager:    { fore:['#8CFC8C','#c8ffc8','#2f6b2f','#0a1a0a','#ffffff'],                      hilite:['#0a1a0a','#123312','#1d4d1d','#264d26','#0f260f'] },
+    walkie:   { fore:['#ffb84d','#f2c199','#3a2b1f','#8a6f4d','#ffffff'],                      hilite:['#3a2b1f','#4d3a26','#5c4630','#2b2118','#6b4f2e'] },
+    receipt:  { fore:['#1c1c1c','#4d4d4d','#ffffff','#e05a5a','#8a8a8a'],                      hilite:['#f3ecc8','#ffe6e6','#eeeeee','#fff2cc','#e6e6e6'] },
+    win94:    { fore:['#ffffff','#000080','#008080','#800000','#c0c0c0','#000000'],            hilite:['#c0c0c0','#a9c6f5','#d4d0c8','#ffffe0','#e0e0e0'] },
+    space:    { fore:['#f2e9ff','#c9a8ff','#8a5cff','#ff8ce0','#5ce1ff','#ffffff'],            hilite:['#2b1a4d','#3a2266','#4a1e5c','#1a2b4d','#331a4d'] },
+    coding:   { fore:['#7bffb0','#7be0ff','#ffea7b','#ff7bd1','#ffffff','#5c5c5c'],            hilite:['#0d1f15','#0d1a22','#221a05','#22051a','#111111'] },
+    imessage: { fore:['#ffffff','#0a84ff','#30d158','#1c1c1c','#8a8a8a'],                      hilite:['#dcefff','#e0ffe6','#f0f0f0','#eaf5ff','#e6e6e6'] },
+    polaroid: { fore:['#4a3728','#8a6b4d','#f0c98a','#ffffff','#2c2c2c'],                      hilite:['#f5e6c8','#f0dcc0','#e8d4ab','#fff2d9','#ecdcc0'] },
+  };
+  function presetsForKind(kind){
+    const t = THEME_COLOR_PRESETS[currentTheme];
+    if(t && t[kind]) return t[kind];
+    return kind === 'hilite' ? HILITE_PRESETS_DEFAULT : FORE_PRESETS_DEFAULT;
+  }
+
   // convenience wrapper for the rich-text toolbar's foreColor/hiliteColor
   // triggers -- captures the current selection immediately (before the
   // popover can steal focus) and applies it back through execCommand.
@@ -2217,15 +2268,20 @@
     const kind = cmd === 'hiliteColor' ? 'hilite' : 'fore';
     toggleColorPopover(triggerBtn, {
       title: cmd==='hiliteColor' ? '하이라이트 색상' : '글자 색상',
-      presets: cmd==='hiliteColor' ? HILITE_PRESETS : FORE_PRESETS,
+      presets: presetsForKind(kind),
       allowNone: true,
       historyKind: kind,
       currentColor: (colorHistory[kind]||[])[0] || (kind==='hilite' ? '#fff59d' : '#ffffff'),
       onApply: (value)=>{
-        body.focus();
-        if(range){ const s = window.getSelection(); s.removeAllRanges(); s.addRange(range); }
-        document.execCommand(cmd, false, value === null ? (cmd==='hiliteColor' ? 'transparent' : 'inherit') : value);
-        body.dispatchEvent(new Event('input', {bubbles:true}));
+        if(value === null){
+          if(range){ const s = window.getSelection(); s.removeAllRanges(); s.addRange(range); }
+          clearRteColor(body, cmd);
+        } else {
+          body.focus();
+          if(range){ const s = window.getSelection(); s.removeAllRanges(); s.addRange(range); }
+          document.execCommand(cmd, false, value);
+          body.dispatchEvent(new Event('input', {bubbles:true}));
+        }
         if(refresh) refresh();
       }
     });
@@ -2234,7 +2290,21 @@
   colorPopoverEl.addEventListener('click', (e)=>{
     if(e.target.closest('.color-popover-close')){ closeColorPopover(); return; }
     const swatch = e.target.closest('.color-popover-swatch');
-    if(swatch){ applyColorAndClose(swatch.dataset.color); return; }
+    if(swatch){
+      const c = swatch.dataset.color;
+      if(c === 'none'){ applyColorAndClose('none'); return; }
+      // presets/recent colors just stage the pick into the custom box + hex
+      // field -- 적용 is what actually commits it, same as typing a hex or
+      // using the native picker below.
+      const hexInput = colorPopoverEl.querySelector('.color-popover-hex');
+      const lg = colorPopoverEl.querySelector('.color-popover-swatch-lg');
+      const colorInput = colorPopoverEl.querySelector('input[type="color"]');
+      if(hexInput){ hexInput.value = c; hexInput.style.borderColor = ''; }
+      if(lg) lg.style.background = c;
+      if(colorInput) colorInput.value = c;
+      colorPopoverEl.querySelectorAll('.color-popover-swatch').forEach(s=>s.classList.toggle('selected', s === swatch));
+      return;
+    }
     if(e.target.closest('.color-popover-apply')){
       const hexInput = colorPopoverEl.querySelector('.color-popover-hex');
       let v = (hexInput.value || '').trim();
@@ -2790,7 +2860,7 @@
   objectColorTrigger.addEventListener('click', ()=>{
     toggleColorPopover(objectColorTrigger, {
       title: '오브젝트 버튼 색상',
-      presets: OBJECT_PRESETS,
+      presets: presetsForKind('fore'),
       allowNone: false,
       historyKind: 'object',
       currentColor: objectColorInput.value,
@@ -3211,12 +3281,7 @@
     if(clearBtn && clearBtn.closest('.rte-toolbar')){
       const blockCard = clearBtn.closest('.block-card');
       const body = blockCard && blockCard.querySelector('.rte-body');
-      if(body){
-        body.focus();
-        const cmd = clearBtn.dataset.cmd;
-        document.execCommand(cmd, false, cmd==='hiliteColor' ? 'transparent' : 'inherit');
-        body.dispatchEvent(new Event('input', {bubbles:true}));
-      }
+      if(body) clearRteColor(body, clearBtn.dataset.cmd);
       return;
     }
     // color trigger dot -- opens the shared color-popover (presets + custom
@@ -3522,12 +3587,7 @@
     if(clearBtn && clearBtn.closest('.rte-toolbar')){
       const blockCard = clearBtn.closest('.block-card');
       const body = blockCard && blockCard.querySelector('.rte-body');
-      if(body){
-        body.focus();
-        const cmd = clearBtn.dataset.cmd;
-        document.execCommand(cmd, false, cmd==='hiliteColor' ? 'transparent' : 'inherit');
-        body.dispatchEvent(new Event('input', {bubbles:true}));
-      }
+      if(body) clearRteColor(body, clearBtn.dataset.cmd);
       return;
     }
     // color trigger dot -- opens the shared color-popover (presets + custom
@@ -4150,7 +4210,7 @@
   musicColorTrigger.addEventListener('click', ()=>{
     toggleColorPopover(musicColorTrigger, {
       title: '음악 버튼 색상',
-      presets: MUSIC_PRESETS,
+      presets: presetsForKind('fore'),
       allowNone: false,
       historyKind: 'music',
       currentColor: musicColorInput.value,
